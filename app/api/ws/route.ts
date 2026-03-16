@@ -14,7 +14,7 @@ export const GET = async (req: NextRequest) => {
   if (!io) {
     const httpServer = createServer();
     io = new IOServer(httpServer, {
-      cors: { origin: "http://10.6.228.86:5173", methods: ["GET", "POST"] },
+      cors: { origin: "*", methods: ["GET", "POST"] },
     });
 
     const COLORS = ["red", "blue", "green", "purple", "orange"];
