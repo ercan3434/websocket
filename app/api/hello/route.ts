@@ -1,41 +1,32 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextApiRequest } from "next";
+import { Server } from "socket.io";
 
-// GET
-export async function GET(req: NextRequest) {
-  return NextResponse.json(
-    { message: "Hello from Next.js API!" },
-    {
-      headers: corsHeaders,
-    },
-  );
+export default function handler(req: NextApiRequest, res: any) {
+  if (!res.socket.server.io) {
+    console.log("Starting Socket.io server...");
+    const io = new Server(res.socket.server, {
+      path: "/api/socket",
+      cors: {
+        origin: "*",
+        methods: ["GET", "POST"],
+      },
+    });
+
+    io.on("connection", (socket) => {
+      console.log("Client connected:", socket.id);
+
+      socket.on("sendMessage", (msg) => {
+        console.log("Received:", msg);
+        // herkese geri gönder
+        io.emit("newMessage", { from: socket.id, text: msg });
+      });
+
+      socket.on("disconnect", () => {
+        console.log("Client disconnected:", socket.id);
+      });
+    });
+
+    res.socket.server.io = io;
+  }
+  res.end();
 }
-
-// POST
-export async function POST(req: NextRequest) {
-  const body = await req.json(); // gelen data
-
-  return NextResponse.json(
-    {
-      message: "POST başarılı",
-      received: body,
-    },
-    {
-      headers: corsHeaders,
-    },
-  );
-}
-
-// OPTIONS (preflight)
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 200,
-    headers: corsHeaders,
-  });
-}
-
-// Ortak CORS header
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
