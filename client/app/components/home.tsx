@@ -1,23 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-export default function HomeComponent() {
-  const [loading, setLoading] = useState(false);
+export default function Home() {
+  const ws = useRef<WebSocket | null>(null);
+  const [connected, setConnected] = useState(false);
 
-  const sendCommand = async (cmd: string) => {
-    setLoading(true);
-    try {
-      await fetch(`https://websocket-08mt.onrender.com/command?cmd=${cmd}`);
-    } catch (err) {
-      console.error(err);
+  useEffect(() => {
+    ws.current = new WebSocket("ws://websocket-08mt.onrender.com");
+
+    ws.current.onopen = () => {
+      console.log("WebSocket bağlandı");
+      setConnected(true);
+    };
+
+    ws.current.onclose = () => {
+      console.log("Bağlantı kapandı");
+      setConnected(false);
+    };
+
+    ws.current.onerror = (err) => {
+      console.error("WebSocket hata:", err);
+    };
+
+    ws.current.onmessage = (event) => {
+      console.log("Server mesajı:", event.data);
+    };
+
+    return () => {
+      ws.current?.close();
+    };
+  }, []);
+
+  const sendCommand = (cmd: string) => {
+    if (ws.current && connected) {
+      ws.current.send(cmd);
+    } else {
+      console.log("Bağlantı yok");
     }
-    setLoading(false);
   };
 
   return (
     <div style={{ padding: 40 }}>
-      <h1>IoT Işık Kontrol</h1>
+      <h1>IoT Işık Kontrol (WebSocket)</h1>
+
+      <p>Durum: {connected ? "🟢 Bağlı" : "🔴 Bağlı değil"}</p>
 
       <button onClick={() => sendCommand("TURN_ON")}>
         Işığı Aç
@@ -26,8 +53,6 @@ export default function HomeComponent() {
       <button onClick={() => sendCommand("TURN_OFF")}>
         Işığı Kapat
       </button>
-
-      {loading && <p>Gönderiliyor...</p>}
     </div>
   );
 }
