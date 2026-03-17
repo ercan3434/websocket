@@ -1,34 +1,45 @@
 import { NextRequest } from "next/server";
-import { Server } from "socket.io";
+import { WebSocketServer } from "ws";
+import { createServer } from "http";
 
+let wss: WebSocketServer | null = null;
+
+// Bu handler sadece WebSocket server'ı başlatır
 export async function GET(req: NextRequest) {
-  // @ts-ignore
-  if (!global.io) {
-    // @ts-ignore
-    global.io = new Server({
-      cors: {
-        origin: "*",
-        methods: ["GET", "POST"],
-      },
+  // Vercel ortamında HTTP server almak mümkün değil, local için örnek:
+  if (!wss) {
+    const server = createServer((req, res) => {
+      res.writeHead(200);
+      res.end("WebSocket server is running!");
     });
 
-    // bağlantı eventleri
-    // @ts-ignore
-    global.io.on("connection", (socket) => {
-      console.log("Client connected:", socket.id);
+    wss = new WebSocketServer({ server });
 
-      socket.on("sendMessage", (msg: any) => {
-        console.log("Received:", msg);
-        // herkese geri gönder
-        // @ts-ignore
-        global.io.emit("newMessage", { from: socket.id, text: msg });
+    wss.on("connection", (ws) => {
+      console.log("Client connected");
+
+      ws.on("message", (message) => {
+        console.log("Received:", message.toString());
+
+        // Gelen mesajı tüm clientlara geri gönder
+        wss?.clients.forEach((client) => {
+          if (client.readyState === ws.OPEN) {
+            client.send(`Server received: ${message.toString()}`);
+          }
+        });
       });
 
-      socket.on("disconnect", () => {
-        console.log("Client disconnected:", socket.id);
+      ws.on("close", () => {
+        console.log("Client disconnected");
       });
+
+      ws.send("Welcome to WebSocket server!");
+    });
+
+    server.listen(3001, () => {
+      console.log("WebSocket server listening on port 3001");
     });
   }
 
-  return new Response("Socket.io server running", { status: 200 });
+  return new Response("WebSocket server initialized");
 }
