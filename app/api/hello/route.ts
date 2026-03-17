@@ -1,32 +1,34 @@
-import { NextApiRequest } from "next";
+import { NextRequest } from "next/server";
 import { Server } from "socket.io";
 
-export default function handler(req: NextApiRequest, res: any) {
-  if (!res.socket.server.io) {
-    console.log("Starting Socket.io server...");
-    const io = new Server(res.socket.server, {
-      path: "/api/socket",
+export async function GET(req: NextRequest) {
+  // @ts-ignore
+  if (!global.io) {
+    // @ts-ignore
+    global.io = new Server({
       cors: {
         origin: "*",
         methods: ["GET", "POST"],
       },
     });
 
-    io.on("connection", (socket) => {
+    // bağlantı eventleri
+    // @ts-ignore
+    global.io.on("connection", (socket) => {
       console.log("Client connected:", socket.id);
 
-      socket.on("sendMessage", (msg) => {
+      socket.on("sendMessage", (msg: any) => {
         console.log("Received:", msg);
         // herkese geri gönder
-        io.emit("newMessage", { from: socket.id, text: msg });
+        // @ts-ignore
+        global.io.emit("newMessage", { from: socket.id, text: msg });
       });
 
       socket.on("disconnect", () => {
         console.log("Client disconnected:", socket.id);
       });
     });
-
-    res.socket.server.io = io;
   }
-  res.end();
+
+  return new Response("Socket.io server running", { status: 200 });
 }
