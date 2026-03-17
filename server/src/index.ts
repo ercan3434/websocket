@@ -1,41 +1,42 @@
 import express from "express";
 import { createServer } from "http";
-import { Server } from "socket.io";
+import { WebSocketServer, WebSocket } from "ws";
+import cors from "cors";
 
 const app = express();
-const httpServer = createServer(app);
-const io = new Server(httpServer, {
-  cors: { origin: "*" },
-});
+app.use(cors());
 
-const COLORS = ["red", "blue", "green", "purple", "orange"];
-let canvasState: any[] = [];
-let colorIndex = 0;
+const server = createServer(app);
+const wss = new WebSocketServer({ server });
 
-io.on("connection", (socket) => {
-  const color = COLORS[colorIndex++ % COLORS.length];
+const clients = new Set<WebSocket>();
 
-  // send initial state
-  socket.emit("init", {
-    state: canvasState,
-    color,
-  });
+wss.on("connection", (ws: WebSocket) => {
+  console.log("Client bağlandı");
 
-  // handle drawing
-  socket.on("draw", (drawData) => {
-    const drawWithColor = { ...drawData, color };
-    canvasState.push(drawWithColor);
-    socket.broadcast.emit("draw", drawWithColor);
-  });
+  clients.add(ws);
 
-  // handle canvas clear
-  socket.on("clear", () => {
-    canvasState = [];
-    io.emit("clear");
+  ws.on("close", () => {
+    console.log("Client ayrıldı");
+    clients.delete(ws);
   });
 });
 
-const PORT = 3000;
-httpServer.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// REST endpoint (Next.js buraya istek atacak)
+app.get("/command", (req, res) => {
+  const command = req.query.cmd as string;
+
+  console.log("Komut:", command);
+
+  clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(command);
+    }
+  });
+
+  res.json({ success: true });
+});
+
+server.listen(3001, () => {
+  console.log("Server çalışıyor: http://localhost:3001");
 });
