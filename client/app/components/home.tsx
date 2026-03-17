@@ -8,7 +8,7 @@ export default function HomeComponent() {
   const sendCommand = async (cmd: string) => {
     setLoading(true);
     try {
-      await fetch(`http://localhost:3001/command?cmd=${cmd}`);
+      await fetch(`https://websocket-08mt.onrender.com/command?cmd=${cmd}`);
     } catch (err) {
       console.error(err);
     }
