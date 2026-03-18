@@ -7,7 +7,7 @@ const app = express();
 app.use(cors({ origin: "*" }));
 
 const server = createServer(app);
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ server, path: '/ws' });
 
 const clients = new Set<WebSocket>();
 
