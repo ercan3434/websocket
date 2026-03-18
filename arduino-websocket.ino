@@ -48,7 +48,8 @@ void setup() {
   Serial.println("\nWiFi bağlandı");
 
   // 👇 Server IP
-  webSocket.begin("10.6.228.86", 3001, "/");
+  webSocket.begin("websocket-08mt.onrender.com", 443, "/");
+  webSocket.setSSL(true); // wss
   webSocket.onEvent(webSocketEvent);
 
   // reconnect
