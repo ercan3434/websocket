@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export default function Home() {
+export default function HomeComponent() {
   const [ws, setWs] = useState<WebSocket | null>(null);
 
   useEffect(() => {
