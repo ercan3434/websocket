@@ -1,57 +1,42 @@
 import express from "express";
 import { createServer } from "http";
-import WebSocket, { WebSocketServer } from "ws";
+import { WebSocketServer, WebSocket } from "ws";
+import cors from "cors";
 
 const app = express();
+app.use(cors({ origin: "*" }));
+
 const server = createServer(app);
-const port = process.env.PORT || 10000;
+const wss = new WebSocketServer({ server });
 
-const wss = new WebSocketServer({
-  server,
-  path: "/ws",
-});
-
-// 🔥 En kritik düzeltme: intersection type
-type AliveWebSocket = WebSocket & {
-  isAlive: boolean;
-};
+const clients = new Set<WebSocket>();
 
 wss.on("connection", (ws: WebSocket) => {
-  const client = ws as AliveWebSocket;
+  console.log("Client bağlandı");
 
-  client.isAlive = true;
+  clients.add(ws);
 
-  client.on("error", console.error);
-
-  client.on("pong", () => {
-    client.isAlive = true;
-  });
-
-  client.on("message", (message: WebSocket.RawData) => {
-    console.log("Received:", message.toString());
-
-    client.send("Hello over WebSocket!");
+  ws.on("close", () => {
+    console.log("Client ayrıldı");
+    clients.delete(ws);
   });
 });
 
-// Ping / Pong
-const interval = setInterval(() => {
-  wss.clients.forEach((ws) => {
-    const client = ws as AliveWebSocket;
+// REST endpoint (Next.js buraya istek atacak)
+app.get("/command", (req, res) => {
+  const command = req.query.cmd as string;
 
-    if (!client.isAlive) {
-      return client.terminate();
+  console.log("Komut:", command);
+
+  clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(command);
     }
-
-    client.isAlive = false;
-    client.ping();
   });
-}, 30000);
 
-wss.on("close", () => {
-  clearInterval(interval);
+  res.json({ success: true });
 });
 
-server.listen(port, () => {
-  console.log(`Server listening on port ${port}`);
+server.listen(3001, () => {
+  console.log("Server çalışıyor: http://localhost:3001");
 });
