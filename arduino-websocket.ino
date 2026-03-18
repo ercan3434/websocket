@@ -1,55 +1,58 @@
 #include <ESP8266WiFi.h>
 #include <WebSocketsClient.h>
 
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
-
-const char* ws_server = "websocket-08mt.onrender.com"; // Server domain
-const int ws_port = 443; // wss için 443, ws için 80
+const char* ssid = "WIFI_ADI";
+const char* password = "WIFI_SIFRE";
 
 WebSocketsClient webSocket;
 
-const int ledPin = D1; // LED bağlı pin
+#define LED_PIN D1
 
+String ledState = "OFF";
+
+// 👇 Server’dan mesaj gelince
 void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
-  switch(type) {
-    case WStype_DISCONNECTED:
-      Serial.println("WebSocket kapandı");
-      break;
-    case WStype_CONNECTED:
-      Serial.println("WebSocket bağlandı");
-      break;
-    case WStype_TEXT:
-      Serial.print("Komut geldi: ");
-      Serial.println((char*)payload);
-      
-      if (strcmp((char*)payload, "TURN_ON") == 0) {
-        digitalWrite(ledPin, HIGH);
-      } else if (strcmp((char*)payload, "TURN_OFF") == 0) {
-        digitalWrite(ledPin, LOW);
-      }
-      break;
-    default:
-      break;
+  if (type == WStype_TEXT) {
+    String msg = (char*)payload;
+    Serial.println("Gelen: " + msg);
+
+    // JSON parse basit (string contains)
+    if (msg.indexOf("TURN_ON") >= 0) {
+      digitalWrite(LED_PIN, HIGH);
+      ledState = "ON";
+    }
+
+    if (msg.indexOf("TURN_OFF") >= 0) {
+      digitalWrite(LED_PIN, LOW);
+      ledState = "OFF";
+    }
+
+    // 👇 State'i geri gönder (ÇOK KRİTİK)
+    String response = "{\"type\":\"STATE\",\"value\":\"" + ledState + "\"}";
+    webSocket.sendTXT(response);
   }
 }
 
 void setup() {
   Serial.begin(115200);
-  pinMode(ledPin, OUTPUT);
-  
+  pinMode(LED_PIN, OUTPUT);
+
   WiFi.begin(ssid, password);
-  Serial.print("WiFi bağlanıyor...");
+
+  Serial.print("WiFi bağlanıyor");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-  Serial.println("Bağlandı!");
-  
-  // WebSocket ayarları
-  webSocket.begin(ws_server, ws_port, "/"); // path server tarafında root "/"
+
+  Serial.println("\nWiFi bağlandı");
+
+  // 👇 Server IP
+  webSocket.begin("10.6.228.86", 3001, "/");
   webSocket.onEvent(webSocketEvent);
-  webSocket.setReconnectInterval(5000); // 5 saniye reconnect
+
+  // reconnect
+  webSocket.setReconnectInterval(5000);
 }
 
 void loop() {

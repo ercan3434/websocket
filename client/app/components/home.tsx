@@ -3,32 +3,42 @@
 import { useEffect, useState } from "react";
 
 export default function HomeComponent() {
-  const [ws, setWs] = useState<WebSocket | null>(null);
+  const [ledState, setLedState] = useState("OFF");
+
+  // const url = "10.6.228.86:3001"
+  const url = "websocket-08mt.onrender.com"
 
   useEffect(() => {
-    const socket = new WebSocket("wss://websocket-08mt.onrender.com");
-    // const socket = new WebSocket("ws://10.6.228.86:3001");
+    const socket = new WebSocket(`ws://${url}`);
 
-    socket.onopen = () => console.log("WebSocket bağlandı");
-    socket.onmessage = (event) => console.log("Komut alındı:", event.data);
-    socket.onclose = () => console.log("WebSocket kapandı");
-    socket.onerror = (err) => console.error("WebSocket hata:", err);
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
 
-    setWs(socket);
+      if (data.type === "STATE") {
+        setLedState(data.value);
+      }
+    };
 
     return () => socket.close();
   }, []);
 
-  const sendCommand = (cmd: string) => {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(cmd);
-    }
+  const sendCommand = async (cmd: string) => {
+    await fetch(`http://${url}/command?cmd=${cmd}`);
   };
 
   return (
     <div style={{ padding: 40 }}>
-      <h1>IoT Işık Kontrol</h1>
+      <h1>IoT Led Kontrol</h1>
+
+      <h2>
+        Durum:{" "}
+        <span style={{ color: ledState === "ON" ? "green" : "red" }}>
+          {ledState}
+        </span>
+      </h2>
+
       <button onClick={() => sendCommand("TURN_ON")}>Işığı Aç</button>
+
       <button onClick={() => sendCommand("TURN_OFF")}>Işığı Kapat</button>
     </div>
   );

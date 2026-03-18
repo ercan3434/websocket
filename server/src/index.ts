@@ -11,26 +11,55 @@ const wss = new WebSocketServer({ server });
 
 const clients = new Set<WebSocket>();
 
-wss.on("connection", (ws: WebSocket) => {
-  console.log("Client bağlandı");
+let ledState = "OFF"; // 👈 STATE
 
+wss.on("connection", (ws: WebSocket) => {
   clients.add(ws);
 
+  ws.on("message", (message) => {
+    const msg = message.toString();
+    console.log("Client mesaj:", msg);
+
+    // 👇 Arduino state gönderdiyse herkese yay
+    try {
+      const data = JSON.parse(msg);
+
+      if (data.type === "STATE") {
+        ledState = data.value;
+
+        clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(data));
+          }
+        });
+      }
+    } catch (e) {}
+  });
+
   ws.on("close", () => {
-    console.log("Client ayrıldı");
     clients.delete(ws);
   });
 });
 
-// REST endpoint (Next.js buraya istek atacak)
+// REST endpoint
 app.get("/command", (req, res) => {
   const command = req.query.cmd as string;
 
   console.log("Komut:", command);
 
+  // 👇 state güncelle
+  if (command === "TURN_ON") ledState = "ON";
+  if (command === "TURN_OFF") ledState = "OFF";
+
+  // 👇 tüm clientlara gönder
   clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(command);
+      client.send(
+        JSON.stringify({
+          type: "STATE",
+          value: ledState,
+        }),
+      );
     }
   });
 
@@ -38,5 +67,5 @@ app.get("/command", (req, res) => {
 });
 
 server.listen(3001, () => {
-  console.log("Server çalışıyor: http://localhost:3001");
+  console.log("Server çalışıyor");
 });
