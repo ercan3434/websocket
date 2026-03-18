@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 
-const SOCKET_URL = "https://websocket-08mt.onrender.com";
+const SOCKET_URL = "https://websocket-draw.onrender.com/";
 
 type Point = { x: number; y: number };
 type DrawData = { start: Point; end: Point; color: string };
