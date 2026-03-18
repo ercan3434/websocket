@@ -7,7 +7,8 @@ export default function Home() {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    ws.current = new WebSocket("ws://websocket-08mt.onrender.com");
+    // ws.current = new WebSocket("ws://10.6.228.86:3001");
+    ws.current = new WebSocket("wss://websocket-08mt.onrender.com");
 
     ws.current.onopen = () => {
       console.log("WebSocket bağlandı");
