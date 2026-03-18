@@ -1,59 +1,108 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
-export default function Home() {
-  const ws = useRef<WebSocket | null>(null);
-  const [connected, setConnected] = useState(false);
+export default function HomeComponent() {
+  const WS_URL = "wss://websocket-08mt.onrender.com/ws";
 
-  useEffect(() => {
-    // ws.current = new WebSocket("ws://10.6.228.86:3001");
-    ws.current = new WebSocket("wss://websocket-08mt.onrender.com");
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectAttempts = useRef(0);
 
-    ws.current.onopen = () => {
-      console.log("WebSocket bağlandı");
-      setConnected(true);
+  const maxReconnectAttempts = 10;
+  const baseBackoffDelay = 1000;
+
+  const pingInterval = useRef<NodeJS.Timeout | null>(null);
+  const pongTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const connect = () => {
+    const ws = new WebSocket(WS_URL);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      console.log("Connected to server");
+      reconnectAttempts.current = 0;
+      startPinging();
     };
 
-    ws.current.onclose = () => {
-      console.log("Bağlantı kapandı");
-      setConnected(false);
+    ws.onmessage = (event: MessageEvent) => {
+      if (event.data === "pong") {
+        if (pongTimeout.current) clearTimeout(pongTimeout.current);
+        return;
+      }
+
+      console.log("Received:", event.data);
     };
 
-    ws.current.onerror = (err) => {
-      console.error("WebSocket hata:", err);
+    ws.onclose = (event: CloseEvent) => {
+      console.log(`Connection closed: ${event.code} ${event.reason}`);
+      cleanup();
+      handleReconnect();
     };
 
-    ws.current.onmessage = (event) => {
-      console.log("Server mesajı:", event.data);
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
     };
+  };
 
-    return () => {
-      ws.current?.close();
-    };
-  }, []);
+  const startPinging = () => {
+    pingInterval.current = setInterval(() => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send("ping");
 
-  const sendCommand = (cmd: string) => {
-    if (ws.current && connected) {
-      ws.current.send(cmd);
+        pongTimeout.current = setTimeout(() => {
+          console.log("No pong received, closing connection");
+          wsRef.current?.close();
+        }, 10000);
+      }
+    }, 30000);
+  };
+
+  const handleReconnect = () => {
+    if (reconnectAttempts.current >= maxReconnectAttempts) {
+      console.error("Max reconnection attempts reached");
+      return;
+    }
+
+    reconnectAttempts.current++;
+
+    const delay = Math.min(
+      baseBackoffDelay * Math.pow(2, reconnectAttempts.current - 1),
+      60000
+    );
+
+    console.log(
+      `Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current})`
+    );
+
+    setTimeout(connect, delay);
+  };
+
+  const cleanup = () => {
+    if (pingInterval.current) clearInterval(pingInterval.current);
+    if (pongTimeout.current) clearTimeout(pongTimeout.current);
+  };
+
+  const sendMessage = () => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send("Hello from Next.js");
     } else {
-      console.log("Bağlantı yok");
+      console.log("WebSocket not connected");
     }
   };
 
+  useEffect(() => {
+    connect();
+
+    return () => {
+      cleanup();
+      wsRef.current?.close();
+    };
+  }, []);
+
   return (
-    <div style={{ padding: 40 }}>
-      <h1>IoT Işık Kontrol (WebSocket)</h1>
-
-      <p>Durum: {connected ? "🟢 Bağlı" : "🔴 Bağlı değil"}</p>
-
-      <button onClick={() => sendCommand("TURN_ON")}>
-        Işığı Aç
-      </button>
-
-      <button onClick={() => sendCommand("TURN_OFF")}>
-        Işığı Kapat
-      </button>
+    <div style={{ padding: 20 }}>
+      <h2>WebSocket Client</h2>
+      <button onClick={sendMessage}>Send Message</button>
     </div>
   );
 }
