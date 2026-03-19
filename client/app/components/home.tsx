@@ -5,12 +5,9 @@ import { useEffect, useState } from "react";
 export default function HomeComponent() {
   const [ledState, setLedState] = useState<string | null>(null);
 
-  // const url = "10.6.228.86:3001"
-  const url = "websocket-08mt.onrender.com";
-
   useEffect(() => {
-    // const socket = new WebSocket(`ws://${url}`);
-    const socket = new WebSocket(`wss://${url}`);
+    // const socket = new WebSocket(`ws://${process.env.NEXT_PUBLIC_BASE_URL}`);
+    const socket = new WebSocket(`wss://${process.env.NEXT_PUBLIC_BASE_URL}`);
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -24,8 +21,8 @@ export default function HomeComponent() {
   }, []);
 
   const sendCommand = async (cmd: string) => {
-    // await fetch(`http://${url}/command?cmd=${cmd}`);
-    await fetch(`https://${url}/command?cmd=${cmd}`);
+    // await fetch(`http://${process.env.NEXT_PUBLIC_BASE_URL}/command?cmd=${cmd}`);
+    await fetch(`https://${process.env.NEXT_PUBLIC_BASE_URL}/command?cmd=${cmd}`);
   };
 
   return (
