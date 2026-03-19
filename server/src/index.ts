@@ -44,6 +44,10 @@ wss.on("connection", (ws: WebSocket) => {
   });
 });
 
+app.get("/", (req, res) => {
+  return res.json({ success: true, message: "Sunucu çalışıyor" });
+});
+
 // REST endpoint
 app.get("/command", (req, res) => {
   const command = req.query.cmd as string;
