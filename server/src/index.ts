@@ -16,6 +16,9 @@ let ledState = "OFF"; // 👈 STATE
 wss.on("connection", (ws: WebSocket) => {
   clients.add(ws);
 
+  // 👇 Yeni bağlantıya mevcut durumu gönder
+  ws.send(JSON.stringify({ type: "STATE", value: ledState }));
+
   ws.on("message", (message) => {
     const msg = message.toString();
     console.log("Client mesaj:", msg);
@@ -67,5 +70,5 @@ app.get("/command", (req, res) => {
 });
 
 server.listen(3001, () => {
-  console.log("Server çalışıyor");
+  console.log("Server çalışıyor port 3001");
 });

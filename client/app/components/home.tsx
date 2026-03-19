@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 export default function HomeComponent() {
-  const [ledState, setLedState] = useState("OFF");
+  const [ledState, setLedState] = useState<string | null>(null);
 
   // const url = "10.6.228.86:3001"
   const url = "websocket-08mt.onrender.com";
@@ -34,8 +34,8 @@ export default function HomeComponent() {
 
       <h2>
         Durum:{" "}
-        <span style={{ color: ledState === "ON" ? "green" : "red" }}>
-          {ledState}
+        <span style={{ color: ledState === "ON" ? "green" : ledState === "OFF" ? "red" : "gray" }}>
+          {ledState ?? "Yükleniyor..."}
         </span>
       </h2>
 
