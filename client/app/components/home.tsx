@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import styles from "./home.module.css";
 
 export default function HomeComponent() {
   const [ledState, setLedState] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     // const socket = new WebSocket(`ws://${process.env.NEXT_PUBLIC_BASE_URL}`);
@@ -21,24 +23,67 @@ export default function HomeComponent() {
   }, []);
 
   const sendCommand = async (cmd: string) => {
-    // await fetch(`http://${process.env.NEXT_PUBLIC_BASE_URL}/command?cmd=${cmd}`);
-    await fetch(`https://${process.env.NEXT_PUBLIC_BASE_URL}/command?cmd=${cmd}`);
+    setIsLoading(true);
+    try {
+      // await fetch(`http://${process.env.NEXT_PUBLIC_BASE_URL}/command?cmd=${cmd}`);
+      await fetch(`https://${process.env.NEXT_PUBLIC_BASE_URL}/command?cmd=${cmd}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
+  const isOn = ledState === "ON";
+
   return (
-    <div style={{ padding: 40 }}>
-      <h1>IoT Led Kontrol</h1>
+    <div className={styles.container}>
+      <div className={styles.wrapper}>
+        {/* Header */}
+        <div className={styles.header}>
+          <h1 className={styles.title}>IoT Kontrol</h1>
+        </div>
 
-      <h2>
-        Durum:{" "}
-        <span style={{ color: ledState === "ON" ? "green" : ledState === "OFF" ? "red" : "gray" }}>
-          {ledState ?? "Yükleniyor..."}
-        </span>
-      </h2>
+        {/* Status Card */}
+        <div className={styles.statusCard}>
+          <div className={styles.statusContent}>
+            <p className={styles.statusLabel}>Durum</p>
+            <div className={`${styles.statusIndicator} ${isOn ? styles.on : styles.off}`}>
+              <div className={styles.statusBadge}>{ledState ?? "Yükleniyor..."}</div>
+            </div>
+          </div>
 
-      <button onClick={() => sendCommand("TURN_ON")}>Işığı Aç</button>
+          {ledState && (
+            <p className={styles.statusDescription}>
+              <strong>{isOn ? "AÇIK" : "KAPALI"}</strong>
+            </p>
+          )}
+        </div>
 
-      <button onClick={() => sendCommand("TURN_OFF")}>Işığı Kapat</button>
+        {/* Controls */}
+        <div className={styles.controls}>
+          <button
+            className={`${styles.btn} ${styles.btnPrimary}`}
+            onClick={() => sendCommand("TURN_ON")}
+            disabled={isLoading || ledState === "ON"}
+          >
+            <span className={styles.btnIcon}>💡</span>
+            Aç
+          </button>
+
+          <button
+            className={`${styles.btn} ${styles.btnSecondary}`}
+            onClick={() => sendCommand("TURN_OFF")}
+            disabled={isLoading || ledState === "OFF"}
+          >
+            <span className={styles.btnIcon}>⚫</span>
+            Kapat
+          </button>
+        </div>
+
+        {/* Footer */}
+        <div className={styles.footer}>
+          <p>Bağlantı Durumu: <span className={styles.connected}>Bağlı</span></p>
+        </div>
+      </div>
     </div>
   );
 }
