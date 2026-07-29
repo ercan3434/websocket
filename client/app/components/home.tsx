@@ -8,25 +8,66 @@ export default function HomeComponent() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // const socket = new WebSocket(`ws://${process.env.NEXT_PUBLIC_BASE_URL}`);
-    const socket = new WebSocket(`wss://${process.env.NEXT_PUBLIC_BASE_URL}`);
+    let socket: WebSocket;
 
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+    const connect = (url: string, isFallback = false) => {
+      socket = new WebSocket(url);
 
-      if (data.type === "STATE") {
-        setLedState(data.value);
-      }
+      socket.onopen = () => {
+        console.log("Bağlandı:", url);
+      };
+
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "STATE") {
+          setLedState(data.value);
+        }
+      };
+
+      socket.onerror = () => {
+        console.log("WebSocket hata:", url);
+      };
+
+      // BURAYA EKLE
+      socket.onclose = (event) => {
+        console.log("Bağlantı kapandı:", event.code);
+
+        if (!isFallback && event.code === 1006) {
+          console.log("Yedek sunucuya bağlanılıyor...");
+          connect(`wss://${process.env.NEXT_PUBLIC_BASE_URL_2}`, true);
+        }
+      };
     };
 
-    return () => socket.close();
+    connect(`wss://${process.env.NEXT_PUBLIC_BASE_URL}`);
+
+    return () => {
+      socket?.close();
+    };
   }, []);
 
   const sendCommand = async (cmd: string) => {
     setIsLoading(true);
+
     try {
-      // await fetch(`http://${process.env.NEXT_PUBLIC_BASE_URL}/command?cmd=${cmd}`);
-      await fetch(`https://${process.env.NEXT_PUBLIC_BASE_URL}/command?cmd=${cmd}`);
+      let response = await fetch(
+        `https://${process.env.NEXT_PUBLIC_BASE_URL}/command?cmd=${cmd}`,
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+    } catch {
+      console.log("İlk sunucu başarısız, yedek sunucu deneniyor...");
+
+      const response = await fetch(
+        `https://${process.env.NEXT_PUBLIC_BASE_URL_2}/command?cmd=${cmd}`,
+      );
+
+      if (!response.ok) {
+        throw new Error(`Yedek sunucu da başarısız: HTTP ${response.status}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -46,8 +87,12 @@ export default function HomeComponent() {
         <div className={styles.statusCard}>
           <div className={styles.statusContent}>
             <p className={styles.statusLabel}>Durum</p>
-            <div className={`${styles.statusIndicator} ${isOn ? styles.on : styles.off}`}>
-              <div className={styles.statusBadge}>{ledState ?? "Yükleniyor..."}</div>
+            <div
+              className={`${styles.statusIndicator} ${isOn ? styles.on : styles.off}`}
+            >
+              <div className={styles.statusBadge}>
+                {ledState ?? "Yükleniyor..."}
+              </div>
             </div>
           </div>
 
@@ -81,7 +126,9 @@ export default function HomeComponent() {
 
         {/* Footer */}
         <div className={styles.footer}>
-          <p>Bağlantı Durumu: <span className={styles.connected}>Bağlı</span></p>
+          <p>
+            Bağlantı Durumu: <span className={styles.connected}>Bağlı</span>
+          </p>
         </div>
       </div>
     </div>
