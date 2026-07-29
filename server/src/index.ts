@@ -73,6 +73,6 @@ app.get("/command", (req, res) => {
   res.json({ success: true });
 });
 
-server.listen(3001, () => {
-  console.log("Server çalışıyor port 3001");
+server.listen(3030, () => {
+  console.log("Server çalışıyor port 3030");
 });
