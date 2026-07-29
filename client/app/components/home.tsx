@@ -14,7 +14,7 @@ export default function HomeComponent() {
       socket = new WebSocket(url);
 
       socket.onopen = () => {
-        console.log("Bağlandı:", url);
+        // console.log("Bağlandı:", url);
       };
 
       socket.onmessage = (event) => {
@@ -26,15 +26,15 @@ export default function HomeComponent() {
       };
 
       socket.onerror = () => {
-        console.log("WebSocket hata:", url);
+        // console.log("WebSocket hata:", url);
       };
 
       // BURAYA EKLE
       socket.onclose = (event) => {
-        console.log("Bağlantı kapandı:", event.code);
+        // console.log("Bağlantı kapandı:", event.code);
 
         if (!isFallback && event.code === 1006) {
-          console.log("Yedek sunucuya bağlanılıyor...");
+          // console.log("Yedek sunucuya bağlanılıyor...");
           connect(`wss://${process.env.NEXT_PUBLIC_BASE_URL_2}`, true);
         }
       };
@@ -59,7 +59,7 @@ export default function HomeComponent() {
         throw new Error(`HTTP ${response.status}`);
       }
     } catch {
-      console.log("İlk sunucu başarısız, yedek sunucu deneniyor...");
+      // console.log("İlk sunucu başarısız, yedek sunucu deneniyor...");
 
       const response = await fetch(
         `https://${process.env.NEXT_PUBLIC_BASE_URL_2}/command?cmd=${cmd}`,
